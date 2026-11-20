@@ -122,23 +122,36 @@ const sendMessage = async () => {
     const reader = response.body?.getReader();
     const decoder = new TextDecoder("utf-8");
 
-    if (reader) {
+        if (reader) {
+      let buffer = '' // 核心点：新增缓冲区，用来拼接半包数据
+      
       while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        const { done, value } = await reader.read()
+        if (done) break
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
+        // 1. 将新收到的二进制数据解码，并拼接到缓冲区
+        buffer += decoder.decode(value, { stream: true })
+        console.log(buffer,'buffer')
+        
+        // 2. 按 SSE 的标准分隔符 '\n\n' 切割
+        const parts = buffer.split('\n\n')
+         console.log(parts,'parts')
+        
+        // 3. 核心点：最后一部分可能是不完整的，把它留在 buffer 里，等下一次读取
+        buffer = parts.pop() || '' 
 
-        for (const line of lines) {
-          if (line.startsWith("data: ") && line !== "data: [DONE]") {
-            try {
-              const data = JSON.parse(line.slice(6));
-              const content = data.choices[0]?.delta?.content || "";
-              messages.value[aiMessageIndex].content += content;
-              scrollToBottom();
-            } catch (e) {
-              // 忽略解析报错
+        for (const part of parts) {
+          const lines = part.split('\n')
+          for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              try {
+                const data = JSON.parse(line.slice(6))
+                const content = data.choices[0]?.delta?.content || ''
+                messages.value[aiMessageIndex].content += content
+                scrollToBottom()
+              } catch (e) {
+                console.error('解析单行数据失败:', line, e)
+              }
             }
           }
         }
