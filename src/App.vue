@@ -50,6 +50,9 @@
 <script setup lang="ts">
 import { ref, nextTick } from "vue";
 import { marked } from "marked";
+const API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY
+
+console.log(API_KEY)
 
 const inputText = ref("");
 const messages = ref<{ role: "user" | "assistant"; content: string }[]>([]);
@@ -60,7 +63,6 @@ const messageListRef = ref<HTMLElement | null>(null);
 let abortController: AbortController | null = null;
 
 // 【注意这里】把刚才复制的 API Key 填进来
-const API_KEY = "sk-e1baae07f7584c288c96a60ba6401f52";
 const API_URL = "https://api.deepseek.com/chat/completions";
 
 const renderMarkdown = (text: string) => {
